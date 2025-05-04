@@ -24,7 +24,7 @@ runs:
       run: |
         # check-binary
         if command -v "$BINARY_NAME" &> /dev/null; then
-          INSTALLED_VERSION="$($BINARY_VERSION_COMMAND)"
+          INSTALLED_VERSION=$(eval "$BINARY_VERSION_COMMAND")
           if printf -- '%s' "v${INSTALLED_VERSION}" | egrep -q -- "${REQUIRED_VERSION}"
           then
             echo "install-binary=false" >> "$GITHUB_OUTPUT"

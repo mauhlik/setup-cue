@@ -26,11 +26,11 @@ jobs:
         uses: ./
 
       - name: Print cue version
-        run: cue --version
+        run: cue version
 
       - name: Test Local Action
         id: test-action-02
         uses: ./
 
       - name: Print cue version
-        run: cue --version
+        run: cue version
