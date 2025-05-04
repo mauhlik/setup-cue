@@ -72,7 +72,7 @@ runs:
         # setup-linux
         curl -LsJ "${DOWNLOAD_URL}/${VERSION}/${ASSET_NAME}.tar.gz" -o "${DESTINATION_FOLDER}/${ASSET_NAME}.tar.gz"
         tar -xzf "${DESTINATION_FOLDER}/${ASSET_NAME}.tar.gz" -C "${DESTINATION_FOLDER}"
-        chmod +x "${DESTINATION_FOLDER}/summon"
+        chmod +x "${DESTINATION_FOLDER}/cue"
         echo "${DESTINATION_FOLDER}" >> $GITHUB_PATH
       env:
         VERSION: ${{ inputs.version }}
