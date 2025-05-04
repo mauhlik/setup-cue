@@ -1,0 +1,81 @@
+name: Setup Cue
+description: Setup Cue for use in GitHub Actions
+author: mauhlik
+branding:
+  icon: package
+  color: orange
+inputs:
+  version:
+    description: 'Cue version to install'
+    required: false
+    default: 'v0.12.1'
+  download-url:
+    description: 'The URL to download Cue from'
+    required: true
+    default: 'https://github.com/cue-lang/cue/releases/download'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if Cue is already installed on Linux
+      if: runner.os == 'Linux'
+      id: check-binary-linux
+      shell: bash
+      run: |
+        # check-binary
+        if command -v "$BINARY_NAME" &> /dev/null; then
+          INSTALLED_VERSION=$(eval "$BINARY_VERSION_COMMAND")
+          if printf -- '%s' "v${INSTALLED_VERSION}" | egrep -q -- "${REQUIRED_VERSION}"
+          then
+            echo "install-binary=false" >> "$GITHUB_OUTPUT"
+            echo "::debug::Binary ${BINARY_NAME} is installed at version ${INSTALLED_VERSION}"
+          else
+            echo "install-binary=true" >> "$GITHUB_OUTPUT"
+            echo "::debug::Binary ${BINARY_NAME} version does not match. Installed: ${INSTALLED_VERSION}, Required: ${REQUIRED_VERSION}"
+          fi
+        else
+          echo "install-binary=true" >> "$GITHUB_OUTPUT"
+          echo "::debug::Binary ${BINARY_NAME} is not installed"
+        fi
+      env:
+        REQUIRED_VERSION: ${{ inputs.version }}
+        BINARY_NAME: cue
+        BINARY_VERSION_COMMAND: cue version | head -n 1 | sed -e 's/^cue version //'
+
+    - name: Gather info for linux
+      if: runner.os == 'Linux' && steps.check-binary-linux.outputs.install-binary == 'true'
+      id: info-linux
+      shell: bash
+      run: |
+        # info-linux
+        PROC_TYPE="$(uname -p)"
+        if [[ "${PROC_TYPE}" == "x86_64" ]]; then
+          echo "asset-name=${BINARY_NAME}_${VERSION}_linux_amd64" >> "$GITHUB_OUTPUT"
+        elif [[ "${PROC_TYPE}" == "aarch64" ]]; then
+          echo "asset-name=${BINARY_NAME}_${VERSION}_linux_arm64" >> "$GITHUB_OUTPUT"
+        else
+          echo "error: unsupported architecture: ${PROC_TYPE}"
+          exit 1
+        fi
+
+        TARGET_DIR=$(mktemp -d -t "${BINARY_NAME}.XXXXXX")
+        echo "destination-folder=${TARGET_DIR}" >> "$GITHUB_OUTPUT"
+      env:
+        VERSION: ${{ inputs.version }}
+        BINARY_NAME: cue
+
+    - name: Setup on Linux
+      if: runner.os == 'Linux' && steps.check-binary-linux.outputs.install-binary == 'true'
+      id: setup-linux
+      shell: bash
+      run: |
+        # setup-linux
+        curl -LsJ "${DOWNLOAD_URL}/${VERSION}/${ASSET_NAME}.tar.gz" -o "${DESTINATION_FOLDER}/${ASSET_NAME}.tar.gz"
+        tar -xzf "${DESTINATION_FOLDER}/${ASSET_NAME}.tar.gz" -C "${DESTINATION_FOLDER}"
+        chmod +x "${DESTINATION_FOLDER}/cue"
+        echo "${DESTINATION_FOLDER}" >> $GITHUB_PATH
+      env:
+        VERSION: ${{ inputs.version }}
+        DOWNLOAD_URL: ${{ inputs.download-url }}
+        ASSET_NAME: ${{ steps.info-linux.outputs.asset-name }}
+        DESTINATION_FOLDER: ${{ steps.info-linux.outputs.destination-folder }}
